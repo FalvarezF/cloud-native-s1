@@ -73,6 +73,8 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+          BOOTSTRAP_ADMIN_USERNAME: ${{ secrets.BOOTSTRAP_ADMIN_USERNAME }}
+          BOOTSTRAP_ADMIN_PASSWORD: ${{ secrets.BOOTSTRAP_ADMIN_PASSWORD }}
         run: |
           set -euo pipefail
           : "${DOCKERHUB_USERNAME:?Set the DOCKERHUB_USERNAME secret}"
@@ -86,11 +88,14 @@ jobs:
           : "${AWS_ACCESS_KEY_ID:?Set the AWS_ACCESS_KEY_ID repository secret}"
           : "${AWS_SECRET_ACCESS_KEY:?Set the AWS_SECRET_ACCESS_KEY repository secret}"
           : "${AWS_SESSION_TOKEN:?Set the AWS_SESSION_TOKEN repository secret}"
+          : "${BOOTSTRAP_ADMIN_USERNAME:?Set the BOOTSTRAP_ADMIN_USERNAME repository secret}"
+          : "${BOOTSTRAP_ADMIN_PASSWORD:?Set the BOOTSTRAP_ADMIN_PASSWORD repository secret}"
 
           image="${DOCKERHUB_USERNAME}/sistema-tickets:${IMAGE_TAG}"
           printf -v remote_args '%q ' \
             "$image" "$AWS_REGION" "$S3_BUCKET" "$EFS_MOUNT_PATH" "$EFS_HOST_PATH" \
-            "$JWT_SECRET" "$AWS_ACCESS_KEY_ID" "$AWS_SECRET_ACCESS_KEY" "$AWS_SESSION_TOKEN"
+            "$JWT_SECRET" "$AWS_ACCESS_KEY_ID" "$AWS_SECRET_ACCESS_KEY" "$AWS_SESSION_TOKEN" \
+            "$BOOTSTRAP_ADMIN_USERNAME" "$BOOTSTRAP_ADMIN_PASSWORD"
 
           ssh -o BatchMode=yes "$EC2_USER@$EC2_HOST" "bash -s -- $remote_args" <<'REMOTE'
           set -euo pipefail
@@ -103,6 +108,8 @@ jobs:
           aws_access_key_id="$7"
           aws_secret_access_key="$8"
           aws_session_token="$9"
+          bootstrap_admin_username="${10}"
+          bootstrap_admin_password="${11}"
           if ! mountpoint -q "$efs_mount_path"; then
             echo "EFS is not mounted at $efs_mount_path" >&2
             exit 1
@@ -124,6 +131,8 @@ jobs:
             -e AWS_ACCESS_KEY_ID="$aws_access_key_id" \
             -e AWS_SECRET_ACCESS_KEY="$aws_secret_access_key" \
             -e AWS_SESSION_TOKEN="$aws_session_token" \
+            -e BOOTSTRAP_ADMIN_USERNAME="$bootstrap_admin_username" \
+            -e BOOTSTRAP_ADMIN_PASSWORD="$bootstrap_admin_password" \
             -e AWS_REGION="$aws_region" \
             -e S3_BUCKET="$s3_bucket" \
             -e S3_AUTO_UPLOAD=true \
